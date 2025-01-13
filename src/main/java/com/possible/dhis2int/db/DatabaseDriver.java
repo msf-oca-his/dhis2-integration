@@ -56,13 +56,13 @@ public class DatabaseDriver {
 		}
 	}
 
-	public void recordQueryLog(Recordlog record, Integer month, Integer year) throws DHISIntegratorException {
+	public void recordQueryLog(Recordlog record, String period, Integer year) throws DHISIntegratorException {
 		logger.debug("Inside recordQueryLog method");
 		Connection connection = null;
 		try {
 			connection = DriverManager.getConnection(properties.openmrsDBUrl);
 			PreparedStatement ps = connection.prepareStatement(
-					"INSERT INTO dhis2_log (report_name, submitted_date, submitted_by, report_log ,status, comment, report_month, report_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+					"INSERT INTO dhis2_log (report_name, submitted_date, submitted_by, report_log ,status, comment, report_period, report_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
 			Timestamp time = new Timestamp(record.getTime().getTime());
 			ps.setString(1, record.getEvent());
@@ -71,7 +71,7 @@ public class DatabaseDriver {
 			ps.setString(4, record.getLog());
 			ps.setString(5, record.getStatus().toString());
 			ps.setString(6, record.getComment());
-			ps.setInt(7, month);
+			ps.setString(7, period);
 			ps.setInt(8, year);
 
 			ps.executeUpdate();
@@ -87,7 +87,7 @@ public class DatabaseDriver {
 		}
 	}
 
-	public String getQuerylog(String programName, Integer month, Integer year) throws DHISIntegratorException {
+	public String getQuerylog(String programName, String period, Integer year) throws DHISIntegratorException {
 		logger.info("Inside getQueryLog method");
 		ResultSet resultSet = null;
 		Connection connection = null;
@@ -96,9 +96,9 @@ public class DatabaseDriver {
 			connection = DriverManager.getConnection(properties.openmrsDBUrl);
 			PreparedStatement ps = connection.prepareStatement(
 
-					"SELECT * FROM  dhis2_log WHERE report_name = ? AND report_month = ? AND report_year = ? ORDER BY submitted_date DESC LIMIT 1");
+					"SELECT * FROM  dhis2_log WHERE report_name = ? AND report_period = ? AND report_year = ? ORDER BY submitted_date DESC LIMIT 1");
 			ps.setString(1, programName);
-			ps.setInt(2, month);
+			ps.setString(2, period);
 			ps.setInt(3, year);
 			resultSet = ps.executeQuery();
 			JSONObject jsonObject = new JSONObject();
@@ -109,9 +109,9 @@ public class DatabaseDriver {
 			}
 			log = jsonObject.toString(INDENT_FACTOR);
 		} catch (SQLException e) {
-			throw new DHISIntegratorException(String.format(Messages.SQL_EXECUTION_EXCEPTION), e);
+			throw new DHISIntegratorException(String.format(Messages.SQL_EXECUTION_EXCEPTION, e.getMessage()));
 		} catch (JSONException e) {
-			throw new DHISIntegratorException(String.format(Messages.SQL_EXECUTION_EXCEPTION), e);
+			throw new DHISIntegratorException(String.format(Messages.SQL_EXECUTION_EXCEPTION, e.getMessage()));
 		} finally {
 			if (connection != null) {
 				try {

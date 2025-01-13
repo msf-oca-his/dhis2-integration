@@ -1,66 +1,78 @@
 {{#programs}}
 <div id="program-{{index}}" class="dhisContent">
 	<div id="program-name-{{index}}" class="programName">{{name}}</div>
-	
-	<div class="monthOption">
-		{{^isYearlyReport}}
+
+	{{#ifEquals ../reportType "weekly"}}
+		<div class="weekOption">
 			<div class="select-style">
-				<select class="month-selector" id="month-{{index}}"
-					onchange="getStatus({{index}})"> 
-					{{#months}}
-						<option value="{{number}}">{{name}}</option> 
-					{{/months}}
+				<select class="week-selector" id="week-{{index}}">
+					{{#../weeks}}
+						<option value="{{number}}">{{name}}</option>
+					{{/../weeks}}
 				</select>
 			</div>
-		
-		<div class="select-style">
-			<select class="year-selector" id="year-{{index}}"
-				onchange="getStatus({{index}})"> 
-				{{#years}}
-					<option value="{{.}}">{{.}}</option> 
-				{{/years}}
-			</select>
 		</div>
-		{{/isYearlyReport}}
-		
-		{{#isYearlyReport}}
+	{{/ifEquals}}
+
+	{{#ifEquals ../reportType "monthly"}}
+		<div class="monthOption">
 			<div class="select-style">
-			<select class="year-selector" id="fiscal-year-{{index}}"> 
-				{{#years}}
-					<option value="{{.}}">{{.}}</option> 
-				{{/years}}
-			</select>
-		</div>
-		{{/isYearlyReport}}
-		
-	</div>
-	
-		{{^isYearlyReport}}
-		<div class="downloadButton">
-			<input type="button" class="btn" onclick="download({{index}})"
-				value="Download">
-		</div>
-		<div class="comment">
-			<textarea id="comment-{{index}}" index="{{index}}"></textarea>
-		</div>
-		
-		{{#canSubmitReport}}
-			<div class="submit">
-				<input id="submit-{{index}}" type="button" class="btn"
-						onclick="confirmAndSubmit({{index}},{{attribute}})"
-						value="Submit to DHIS2">
+				<select class="month-selector" id="month-{{index}}"
+					onchange="getStatus('{{../reportType}}', {{index}})">
+					{{#../months}}
+						<option value="{{number}}">{{name}}</option>
+					{{/../months}}
+				</select>
 			</div>
-		{{/canSubmitReport}}
-		
-		<div class="status" id="status-{{index}}" index="{{index}}"></div>
-		{{/isYearlyReport}}
-	
-		{{#isYearlyReport}}
+
+			<div class="select-style">
+				<select class="year-selector" id="year-{{index}}"
+					onchange="getStatus('{{../reportType}}', {{index}})">
+					{{#../years}}
+						<option value="{{.}}">{{.}}</option>
+					{{/../years}}
+				</select>
+			</div>
+		</div>
+	{{/ifEquals}}
+
+	{{#ifEquals ../reportType "yearly"}}
+		<div class="monthOption">
+			<div class="select-style">
+				<select class="year-selector" id="fiscal-year-{{index}}">
+					{{#../years}}
+						<option value="{{.}}">{{.}}</option>
+					{{/../years}}
+				</select>
+			</div>
+		</div>
+	{{/ifEquals}}
+
+	<div class="downloadButton">
+		<input type="button" class="btn" onclick="download({{index}})"
+			value="Download">
+	</div>
+
+	<div class="comment">
+		<textarea id="comment-{{index}}" index="{{index}}"></textarea>
+	</div>
+
+	{{#../canSubmitReport}}
+		<div class="submit">
+			<input id="submit-{{index}}" type="button" class="btn"
+					onclick="confirmAndSubmit({{index}}, '{{../reportType}}' ,{{attribute}})"
+					value="Submit to DHIS2">
+		</div>
+	{{/../canSubmitReport}}
+
+	<div class="status" id="status-{{index}}" index="{{index}}"></div>
+
+	{{#ifEquals ../reportType "yearly"}}
 		<div class="downloadButton">
 			<input type="button" class="btn" onclick="downloadFiscalYearReport({{index}})"
 				value="Download">
 		</div>
-		{{/isYearlyReport}}
-	
+	{{/ifEquals}}
+
 </div>
 {{/programs}}

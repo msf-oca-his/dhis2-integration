@@ -15,11 +15,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -96,20 +92,18 @@ public class DHISIntegrator {
 		logger.info("Inside isLoggedIn");
 		return "Logged in";
 	}
-	
+
 	@RequestMapping(path = "/hasReportingPrivilege")
 	public Boolean hasReportSubmissionPrivilege(HttpServletRequest request, HttpServletResponse response) {
-    	return dHISClient.hasDhisSubmitPrivilege(request, response);
-    }
+		return dHISClient.hasDhisSubmitPrivilege(request, response);
+	}
 
 	public void prepareImamReport(Integer year, Integer month) throws JSONException {
 		logger.info("Inside prepareImamReport method");
 
-
 		JSONObject dhisConfig = (JSONObject) getDHISConfig(IMAM_PROGRAM_NAME);
 		String orgUnit = (String) dhisConfig.get("orgUnit");
 		String imamDataSetId = (String) dhisConfig.get("dataSetIdImam");
-
 
 		Integer prevMonth;
 		if (month == 1) {
@@ -174,27 +168,29 @@ public class DHISIntegrator {
 	}
 
 	@RequestMapping(path = "/submit-to-dhis")
-	public String submitToDHIS(@RequestParam("name") String program, @RequestParam("year") Integer year,
-			@RequestParam("month") Integer month, @RequestParam("comment") String comment,
-			@RequestParam("isImam") Boolean isImam,@RequestParam("isFamily") Boolean isFamily,HttpServletRequest clientReq, HttpServletResponse clientRes)
+	public String submitToDHIS(
+			@RequestParam("name") String program, @RequestParam("year") Integer year,
+			@RequestParam(value = "month", required = false) Integer month,
+			@RequestParam(value = "week", required = false) Integer week,
+			@RequestParam("comment") String comment, HttpServletRequest clientReq, HttpServletResponse clientRes)
 			throws IOException, JSONException {
+		// Check if either month or week is provided, but not both
+		if (month == null && week == null) {
+			throw new IllegalArgumentException("Either 'month' or 'week' must be provided.");
+		};
+
+		if (month != null && week != null) {
+			throw new IllegalArgumentException("Provide only one: either 'month' or 'week', not both.");
+		};
+
 		String userName = new Cookies(clientReq).getValue(BAHMNI_USER);
 		Submission submission = new Submission();
 		String filePath = submittedDataStore.getAbsolutePath(submission);
 		Status status;
 		try {
-			if (isImam != null && isImam) {
-				prepareImamReport(year, month);
-			}
-			if (isFamily != null && isFamily) {
-				prepareFamilyPlanningReport(year, month);
-			}
-			
-			submitToDHIS(submission, program, year, month);
+			submitToDHIS(submission, program, year, month, week);
 			status = submission.getStatus();
-			
-			if (isImam != null && isImam)
-				databaseDriver.dropImamTable();
+
 		} catch (DHISIntegratorException | JSONException e) {
 			status = Failure;
 			submission.setException(e);
@@ -207,20 +203,32 @@ public class DHISIntegrator {
 
 		submittedDataStore.write(submission);
 		submissionLog.log(program, userName, comment, status, filePath);
-		recordLog(userName, program, year, month, submission.getInfo(), status, comment);
+
+		String period;
+		if (month != null) {
+			period = format("%dW%d", year, month);
+		} else {
+			period = format("%dW%d", year, week);
+		}
+
+		recordLog(userName, program, year, period, submission.getInfo(), status, comment);
 
 		return submission.getInfo();
 	}
-	
+
 	@RequestMapping(path = "/submit-to-dhis_report_status")
-	public String submitToDHISLOG(@RequestParam("name") String program, @RequestParam("year") Integer year,
-			@RequestParam("month") Integer month, @RequestParam("comment") String comment, HttpServletRequest clientReq,
+	public String submitToDHISLOG(
+			@RequestParam("name") String program,
+			@RequestParam("year") Integer year,
+			@RequestParam(value = "month", required = false) Integer month,
+			@RequestParam(value = "week", required = false) Integer week,
+			@RequestParam("comment") String comment, HttpServletRequest clientReq,
 			HttpServletResponse clientRes) throws IOException, JSONException {
 		String userName = new Cookies(clientReq).getValue(BAHMNI_USER);
 		Submission submission = new Submission();
 		Status status;
 		try {
-			submitToDHIS(submission, program, year, month);
+			submitToDHIS(submission, program, year, month, null);
 			status = submission.getStatus();
 		} catch (DHISIntegratorException | JSONException e) {
 			status = Failure;
@@ -233,11 +241,19 @@ public class DHISIntegrator {
 		}
 		submittedDataStore.write(submission);
 
-		recordLog(userName, program, year, month, submission.getInfo(), status, comment);
+		String period;
+		if (month != null) {
+			period = format("%dW%d", year, month);
+		} else {
+			period = format("%dW%d", year, week);
+		}
+
+
+		recordLog(userName, program, year, period, submission.getInfo(), status, comment);
 		return submission.getInfo();
 	}
 
-	private String recordLog(String userName, String program, Integer year, Integer month, String log, Status status,
+	private String recordLog(String userName, String program, Integer year, String period, String log, Status status,
 			String comment) throws IOException, JSONException {
 		Date date = new Date();
 		Status submissionStatus = status;
@@ -247,20 +263,32 @@ public class DHISIntegrator {
 			submissionStatus = Status.Complete;
 		}
 		Recordlog recordLog = new Recordlog(program, date, userName, log, submissionStatus, comment);
-		databaseDriver.recordQueryLog(recordLog, month, year);
+		databaseDriver.recordQueryLog(recordLog, period, year);
 		return "Saved";
 	}
 
 	@RequestMapping(path = "/log")
-	public String getLog(@RequestParam String programName, @RequestParam("year") Integer year,
-			@RequestParam("month") Integer month) throws SQLException {
+	public String getLog(@RequestParam String programName,
+						 @RequestParam("year") Integer year,
+						 @RequestParam(value = "month", required = false) Integer month,
+						 @RequestParam(value = "week", required = false) Integer week) throws SQLException {
 		logger.info("Inside getLog method");
-		return databaseDriver.getQuerylog(programName, month, year);
+
+		String period;
+		if (month != null) {
+			period = format("%dW%d", year, month);
+		} else {
+			period = format("%dW%d", year, week);
+		}
+
+		return databaseDriver.getQuerylog(programName, period, year);
 	}
 
 	@RequestMapping(path = "/submit-to-dhis-atr")
-	public String submitToDhisAtrOptCombo(@RequestParam("name") String program, @RequestParam("year") Integer year,
-			@RequestParam("month") Integer month, @RequestParam("comment") String comment, HttpServletRequest clientReq,
+	public String submitToDhisAtrOptCombo(@RequestParam("name") String program,
+										  @RequestParam("year") Integer year,
+										  @RequestParam(value = "month", required = false) Integer month,
+										  @RequestParam(value = "week", required = false) Integer week, @RequestParam("comment") String comment, HttpServletRequest clientReq,
 			HttpServletResponse clientRes) throws IOException, JSONException {
 		String userName = new Cookies(clientReq).getValue(BAHMNI_USER);
 		Submission headSubmission = new Submission();
@@ -316,7 +344,15 @@ public class DHISIntegrator {
 				}
 			}
 			submissionLog.log(program, userName, comment, status, filePathData);
-			recordLog(userName, program, year, month, comment, status, comment);
+
+			String period;
+			if (month != null) {
+				period = format("%dW%d", year, month);
+			} else {
+				period = format("%dW%d", year, week);
+			}
+
+			recordLog(userName, program, year, period, comment, status, comment);
 		}
 		return headSubmission.getInfo();
 	}
@@ -404,7 +440,8 @@ public class DHISIntegrator {
 		}
 	}
 
-	private Submission submitToDHIS(Submission submission, String name, Integer year, Integer month)
+	private Submission submitToDHIS(Submission submission, String name, Integer year,
+									Integer month, Integer week)
 			throws DHISIntegratorException, JSONException, IOException {
 		JSONObject reportConfig = getConfig(properties.reportsJson);
 
@@ -427,14 +464,35 @@ public class DHISIntegrator {
 		}
 
 		JSONObject dhisConfig = getDHISConfig(name);
-		ReportDateRange dateRange = new DateConverter().getDateRange(year, month);
+
+		ReportDateRange dateRange;
+		String period;
+		if (month != null) {
+			dateRange = new DateConverter().getDateRange(year, month);
+			period = format("%d%02d", year, month);
+		} else {
+			org.joda.time.LocalDate startDate = new org.joda.time.LocalDate()
+					.withWeekyear(year)
+					.withWeekOfWeekyear(week)
+					.withDayOfWeek(1);
+
+			org.joda.time.LocalDate endDate = startDate.plusDays(6);
+
+			dateRange = new ReportDateRange(startDate.toDateTimeAtStartOfDay(),
+					endDate.toDateTimeAtStartOfDay());
+			period = format("%dW%d", year, week);
+		}
+
 		List<Object> programDataValue = getProgramDataValues(childReports, dhisConfig.getJSONObject("reports"),
 				dateRange);
 
 		JSONObject programDataValueSet = new JSONObject();
 		programDataValueSet.put("orgUnit", dhisConfig.getString("orgUnit"));
+		programDataValueSet.put("dataSet", dhisConfig.getString("dataSet"));
 		programDataValueSet.put("dataValues", programDataValue);
-		programDataValueSet.put("period", format("%d%02d", year, month));
+		programDataValueSet.put("period", period);
+
+		logger.info("Inside getQueryLog method" + programDataValueSet);
 
 		ResponseEntity<String> responseEntity = dHISClient.post(SUBMISSION_ENDPOINT, programDataValueSet);
 		submission.setPostedData(programDataValueSet);
@@ -532,11 +590,9 @@ public class DHISIntegrator {
 	public void prepareFamilyPlanningReport(Integer year, Integer month) throws JSONException {
 		logger.info("Inside prepareFamilyPlanningReport method");
 
-
 		JSONObject dhisConfig = (JSONObject) getDHISConfig(FamilyPlanning_PROGRAM_NAME);
 		String orgUnit = (String) dhisConfig.get("orgUnit");
 		String familyPlanningDataSetId = (String) dhisConfig.get("dataSetIdFamily");
-
 
 		Integer prevMonth;
 		if (month == 1) {
