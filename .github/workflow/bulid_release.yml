@@ -18,7 +18,7 @@ jobs:
         run: mvn clean install
 
       - name: Build docker image
-        run: docker build -t dhis2-integration:latest -f package/docker/Dockerfile .
+        run: docker build -t dhis2-integration:latest -f package/Dockerfile .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
