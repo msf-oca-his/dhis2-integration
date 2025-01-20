@@ -54,6 +54,14 @@ textarea, select{
 .tab-yearly .programName {
 	flex: 3;
 }
+.weekOption,.fiscal-year-option {
+    flex: 1.4;
+    border-right: 1px #ccc solid;
+    padding: 5px 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 .monthOption, .fiscal-year-option {
     flex: 1.4;
     border-right: 1px #ccc solid;
@@ -148,7 +156,7 @@ textarea, select{
 }
 
 .select-style{
-    padding: 0;
+    padding: 5px;
     margin: 2px;
     border: 1px solid #cbced0;
     border-radius: 3px;
@@ -238,6 +246,21 @@ a.header-link:hover {
 }
 
 #tabs ul li.ui-state-active {
-    background: #669999; 
+    background: #669999;
     border: 1px solid #669999;
+}
+
+.location-select {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+}
+.location-selector {
+    width: 20%;
+}
+
+label .location {
+    font-weight: 700;
+    width: 7%;
 }

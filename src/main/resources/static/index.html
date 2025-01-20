@@ -8,8 +8,8 @@
 	href="bower_components/jquery-ui/themes/base/jquery-ui.min.css">
 <link rel="stylesheet" href="css/stylesheet.css">
 <script src="bower_components/jquery.min/index.js"></script>
-<script src="bower_components/mustache.min/index.js"></script>
 <script src="bower_components/jquery-ui/jquery-ui.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
 </head>
 <body>
 
@@ -26,11 +26,35 @@
 	</div>
 
 	<div class="dhisWrapper">
+		<div class="location-select" id="locationOptions">
+			<label class="location">Location :</label>
+			<select class="location-selector" id="openmrs-location"></select>
+		</div>
+
 		<div id="tabs">
 			<ul>
+				<li><a href="#tab-weekly">Weekly</a></li>
 				<li><a href="#tab-monthly">Monthly</a></li>
-				<li><a href="#tab-yearly">Yearly</a></li>
+				<!-- <li><a href="#tab-yearly">Yearly</a></li> -->
 			</ul>
+			<div id="tab-weekly">
+				<div class="section-title">
+					<span>List Of HMIS Programs</span>
+				</div>
+
+				<div class="dhisContent dhisContentHeader">
+					<div class="programName">Name</div>
+					<div class="weekOption">Reporting Week and Year</div>
+					<!-- <div class="downloadButton"></div> -->
+					<div class="comment">
+						Comments (<span class="mandate-comment" />)
+					</div>
+					<div class="submit">Commit To DHIS</div>
+					<div class="status">Reporting Status</div>
+				</div>
+
+				<div id="programs-weekly"></div>
+			</div>
 			<div id="tab-monthly">
 				<div class="section-title">
 					<span>List Of HMIS Programs</span>
@@ -39,7 +63,7 @@
 				<div class="dhisContent dhisContentHeader">
 					<div class="programName">Name</div>
 					<div class="monthOption">Reporting Month and Year</div>
-					<div class="downloadButton"></div>
+					<!-- <div class="downloadButton"></div> -->
 					<div class="comment">
 						Comments (<span class="mandate-comment" />)
 					</div>
@@ -49,7 +73,7 @@
 
 				<div id="programs"></div>
 			</div>
-			<div id="tab-yearly" class="tab-yearly">
+			<!-- <div id="tab-yearly" class="tab-yearly">
 				<div class="section-title">
 					<span>List Of HMIS Programs</span>
 				</div>
@@ -59,7 +83,7 @@
 					<div class="downloadButton"></div>
 				</div>
 				<div id="programs-yearly"></div>
-			</div>
+			</div> -->
 		</div>
 
 	</div>

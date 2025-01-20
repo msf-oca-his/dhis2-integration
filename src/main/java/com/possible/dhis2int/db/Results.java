@@ -1,32 +1,44 @@
 package com.possible.dhis2int.db;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Results {
-	
-	private final List<List<String>> rows = new ArrayList<>();
-	
+
+	List<Map<String, Object>> results = new ArrayList<>();
+
 	public static Results create(ResultSet resultSet) throws SQLException {
-		Results results = new Results();
-		Integer numberOfCols = resultSet.getMetaData().getColumnCount();
-		while (resultSet.next()) {
-			List<String> row = new ArrayList<>();
-			for (Integer colIndex = 1; colIndex <= numberOfCols; colIndex++) {
-				row.add(resultSet.getString(colIndex));
-			}
-			results.rows.add(row);
-		}
-		return results;
+		Results response = new Results();
+		ResultSetMetaData metaData = resultSet.getMetaData();
+        int numberOfCols = metaData.getColumnCount();
+
+        while (resultSet.next()) {
+            Map<String, Object> row = new HashMap<>();
+            for (int colIndex = 1; colIndex <= numberOfCols; colIndex++) {
+                String columnName = metaData.getColumnName(colIndex);
+                Object value = resultSet.getObject(colIndex);
+                row.put(columnName, value);
+            }
+            response.results.add(row);
+        }
+        return response;
 	}
-	
-	public String get(Integer row, Integer column) {
-		return rows.get(row - 1).get(column - 1);
-	}
-	
-	public List<List<String>> getRows() {
-		return rows;
-	}
+
+    public List<Map<String, Object>> getResults() {
+        return results;
+    }
+
+    public Map<String, Object> findRowByKeyValue(String key, String value) {
+        for (Map<String, Object> row : results) {
+            if (row.containsKey(key) && value.equalsIgnoreCase(row.get(key).toString())) {
+                return row;
+            }
+        }
+        return null;
+    }
 }
