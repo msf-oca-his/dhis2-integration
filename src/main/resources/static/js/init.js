@@ -69,8 +69,6 @@ async function populateDropdown() {
   const locations = await fetchLocations();
   const selectElement = document.getElementById("openmrs-location");
 
-  console.log("locations", locations);
-
   locations.forEach((location) => {
     const option = document.createElement("option");
     option.value = location.uuid;
@@ -137,7 +135,6 @@ function renderWeeklyReport() {
   return $.get("html/programs.html").then(function (template) {
     var canSubmitReport = hasReportingPrivilege;
     return getContent("weekly", canSubmitReport).then(function (content) {
-      console.log(content);
       $("#programs-weekly").html(renderTemplate(template, content));
     });
   });
