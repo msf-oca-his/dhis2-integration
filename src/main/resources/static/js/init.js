@@ -45,10 +45,39 @@ $(document).ready(function () {
     .then(registerOnchangeOnComment)
     .then(getLogStatus);
 
+  populateDropdown();
+
   Handlebars.registerHelper("ifEquals", function (arg1, arg2, options) {
     return arg1 === arg2 ? options.fn(this) : options.inverse(this);
   });
 });
+
+const fetchLocations = async () => {
+  const url = "/openmrs/ws/rest/v1/location?v=custom:(uuid,display)";
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    return data.results;
+  } catch (error) {
+    console.error("Error fetching locations:", error);
+  }
+};
+
+async function populateDropdown() {
+  const locations = await fetchLocations();
+  const selectElement = document.getElementById("openmrs-location");
+
+  console.log("locations", locations);
+
+  locations.forEach((location) => {
+    const option = document.createElement("option");
+    option.value = location.uuid;
+    option.textContent = location.display;
+    selectElement.appendChild(option);
+  });
+};
 
 function isAuthenticated() {
   return $.get("is-logged-in")
@@ -215,6 +244,7 @@ function submit(index, reportType, attribute) {
   var year = element("year", index).val();
   var month = element("month", index).val();
   var week = element("week", index).val();
+  var locationUUID = $("#openmrs-location").val();
   var programName = element("program-name", index).html();
   var comment = element("comment", index).val();
 
@@ -231,7 +261,8 @@ function submit(index, reportType, attribute) {
     month: month,
     week: week,
     name: programName,
-    comment: comment
+    comment: comment,
+    location_uuid: locationUUID,
   };
 
   disableBtn(element("submit", index));

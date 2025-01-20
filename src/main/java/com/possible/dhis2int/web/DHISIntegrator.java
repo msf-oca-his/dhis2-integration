@@ -1,27 +1,23 @@
 package com.possible.dhis2int.web;
 
-import static com.possible.dhis2int.audit.Submission.Status.Failure;
-import static com.possible.dhis2int.web.Cookies.BAHMNI_USER;
-import static com.possible.dhis2int.web.Messages.CONFIG_FILE_NOT_FOUND;
-import static com.possible.dhis2int.web.Messages.DHIS_SUBMISSION_FAILED;
-import static com.possible.dhis2int.web.Messages.FILE_READING_EXCEPTION;
-import static com.possible.dhis2int.web.Messages.REPORT_DOWNLOAD_FAILED;
-import static java.lang.String.format;
-import static org.apache.log4j.Logger.getLogger;
-
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import static java.lang.String.format;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
-import org.joda.time.DateTime;
+import static org.apache.log4j.Logger.getLogger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,11 +25,8 @@ import org.json.JSONTokener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -41,6 +34,7 @@ import com.possible.dhis2int.Properties;
 import com.possible.dhis2int.audit.Recordlog;
 import com.possible.dhis2int.audit.Submission;
 import com.possible.dhis2int.audit.Submission.Status;
+import static com.possible.dhis2int.audit.Submission.Status.Failure;
 import com.possible.dhis2int.audit.SubmissionLog;
 import com.possible.dhis2int.audit.SubmittedDataStore;
 import com.possible.dhis2int.date.DateConverter;
@@ -49,6 +43,11 @@ import com.possible.dhis2int.db.DatabaseDriver;
 import com.possible.dhis2int.db.Results;
 import com.possible.dhis2int.dhis.DHISClient;
 import com.possible.dhis2int.exception.NotAvailableException;
+import static com.possible.dhis2int.web.Cookies.BAHMNI_USER;
+import static com.possible.dhis2int.web.Messages.CONFIG_FILE_NOT_FOUND;
+import static com.possible.dhis2int.web.Messages.DHIS_SUBMISSION_FAILED;
+import static com.possible.dhis2int.web.Messages.FILE_READING_EXCEPTION;
+import static com.possible.dhis2int.web.Messages.REPORT_DOWNLOAD_FAILED;
 
 @RestController
 public class DHISIntegrator {
@@ -170,6 +169,7 @@ public class DHISIntegrator {
 	@RequestMapping(path = "/submit-to-dhis")
 	public String submitToDHIS(
 			@RequestParam("name") String program, @RequestParam("year") Integer year,
+			@RequestParam("location_uuid") String locationUUID,
 			@RequestParam(value = "month", required = false) Integer month,
 			@RequestParam(value = "week", required = false) Integer week,
 			@RequestParam("comment") String comment, HttpServletRequest clientReq, HttpServletResponse clientRes)
@@ -188,7 +188,7 @@ public class DHISIntegrator {
 		String filePath = submittedDataStore.getAbsolutePath(submission);
 		Status status;
 		try {
-			submitToDHIS(submission, program, year, month, week);
+			submitToDHIS(submission, program, year, month, week, locationUUID);
 			status = submission.getStatus();
 
 		} catch (DHISIntegratorException | JSONException e) {
@@ -228,7 +228,7 @@ public class DHISIntegrator {
 		Submission submission = new Submission();
 		Status status;
 		try {
-			submitToDHIS(submission, program, year, month, null);
+			submitToDHIS(submission, program, year, month, null, null);
 			status = submission.getStatus();
 		} catch (DHISIntegratorException | JSONException e) {
 			status = Failure;
@@ -284,103 +284,103 @@ public class DHISIntegrator {
 		return databaseDriver.getQuerylog(programName, period, year);
 	}
 
-	@RequestMapping(path = "/submit-to-dhis-atr")
-	public String submitToDhisAtrOptCombo(@RequestParam("name") String program,
-										  @RequestParam("year") Integer year,
-										  @RequestParam(value = "month", required = false) Integer month,
-										  @RequestParam(value = "week", required = false) Integer week, @RequestParam("comment") String comment, HttpServletRequest clientReq,
-			HttpServletResponse clientRes) throws IOException, JSONException {
-		String userName = new Cookies(clientReq).getValue(BAHMNI_USER);
-		Submission headSubmission = new Submission();
-		String filePath = submittedDataStore.getAbsolutePath(headSubmission);
-		List<Submission> batchSubmission = new ArrayList<>();
-		Results results;
-		int i = 0;
-		try {
-			JSONObject reportConfig = getConfig(properties.reportsJson);
-			List<JSONObject> childReports = jsonArrayToList(
-					reportConfig.getJSONObject(program).getJSONObject("config").getJSONArray("reports"));
-			String sqlPath = childReports.get(0).getJSONObject("config").getString("sqlPath");
-			ReportDateRange dateRange = new DateConverter().getDateRange(year, month);
-			String type = "MRSGeneric";
+	// @RequestMapping(path = "/submit-to-dhis-atr")
+	// public String submitToDhisAtrOptCombo(@RequestParam("name") String program,
+	// 									  @RequestParam("year") Integer year,
+	// 									  @RequestParam(value = "month", required = false) Integer month,
+	// 									  @RequestParam(value = "week", required = false) Integer week, @RequestParam("comment") String comment, HttpServletRequest clientReq,
+	// 		HttpServletResponse clientRes) throws IOException, JSONException {
+	// 	String userName = new Cookies(clientReq).getValue(BAHMNI_USER);
+	// 	Submission headSubmission = new Submission();
+	// 	String filePath = submittedDataStore.getAbsolutePath(headSubmission);
+	// 	List<Submission> batchSubmission = new ArrayList<>();
+	// 	Results results;
+	// 	int i = 0;
+	// 	try {
+	// 		JSONObject reportConfig = getConfig(properties.reportsJson);
+	// 		List<JSONObject> childReports = jsonArrayToList(
+	// 				reportConfig.getJSONObject(program).getJSONObject("config").getJSONArray("reports"));
+	// 		String sqlPath = childReports.get(0).getJSONObject("config").getString("sqlPath");
+	// 		ReportDateRange dateRange = new DateConverter().getDateRange(year, month);
+	// 		String type = "MRSGeneric";
 
-			results = getResult(getContent(sqlPath), type, dateRange);
+	// 		results = getResult(getContent(sqlPath), type, dateRange);
 
-			for (List<String> row : results.getRows()) {
-				Submission submission = new Submission();
-				submitToDhisAtrOptCombo(row, submission, program, year, month);
-				Status status = submission.getStatus();
-				submission.setStatus(status);
-				batchSubmission.add(submission);
-				i++;
-			}
+	// 		for (List<String> row : results.getRows()) {
+	// 			Submission submission = new Submission();
+	// 			submitToDhisAtrOptCombo(row, submission, program, year, month);
+	// 			Status status = submission.getStatus();
+	// 			submission.setStatus(status);
+	// 			batchSubmission.add(submission);
+	// 			i++;
+	// 		}
 
-		} catch (DHISIntegratorException | JSONException | SQLException e) {
-			if (batchSubmission.size() > 0) {
-				batchSubmission.get(i).setStatus(Failure);
-				batchSubmission.get(i).setException(e);
-			}
-			logger.error(e.getMessage(), e);
-			headSubmission.setException(e);
+	// 	} catch (DHISIntegratorException | JSONException | SQLException e) {
+	// 		if (batchSubmission.size() > 0) {
+	// 			batchSubmission.get(i).setStatus(Failure);
+	// 			batchSubmission.get(i).setException(e);
+	// 		}
+	// 		logger.error(e.getMessage(), e);
+	// 		headSubmission.setException(e);
 
-		} catch (Exception e) {
-			batchSubmission.get(i).setStatus(Failure);
-			headSubmission.setException(e);
-			logger.error(Messages.INTERNAL_SERVER_ERROR, e);
-		} finally {
-			Status status = Status.Failure;
-			String filePathData = "No Data sent";
-			if (batchSubmission.size() > 0) {
-				filePathData = filePath;
-				submittedDataStore.write(batchSubmission, filePathData);
-				status = Status.Success;
-				for (Submission submit : batchSubmission) {
-					headSubmission = submit;
-					if (Status.Failure.equals(submit.retrieveStatus())) {
-						status = Failure;
-						headSubmission = submit;
-						break;
-					}
-				}
-			}
-			submissionLog.log(program, userName, comment, status, filePathData);
+	// 	} catch (Exception e) {
+	// 		batchSubmission.get(i).setStatus(Failure);
+	// 		headSubmission.setException(e);
+	// 		logger.error(Messages.INTERNAL_SERVER_ERROR, e);
+	// 	} finally {
+	// 		Status status = Status.Failure;
+	// 		String filePathData = "No Data sent";
+	// 		if (batchSubmission.size() > 0) {
+	// 			filePathData = filePath;
+	// 			submittedDataStore.write(batchSubmission, filePathData);
+	// 			status = Status.Success;
+	// 			for (Submission submit : batchSubmission) {
+	// 				headSubmission = submit;
+	// 				if (Status.Failure.equals(submit.retrieveStatus())) {
+	// 					status = Failure;
+	// 					headSubmission = submit;
+	// 					break;
+	// 				}
+	// 			}
+	// 		}
+	// 		submissionLog.log(program, userName, comment, status, filePathData);
 
-			String period;
-			if (month != null) {
-				period = format("%dW%d", year, month);
-			} else {
-				period = format("%dW%d", year, week);
-			}
+	// 		String period;
+	// 		if (month != null) {
+	// 			period = format("%dW%d", year, month);
+	// 		} else {
+	// 			period = format("%dW%d", year, week);
+	// 		}
 
-			recordLog(userName, program, year, period, comment, status, comment);
-		}
-		return headSubmission.getInfo();
-	}
+	// 		recordLog(userName, program, year, period, comment, status, comment);
+	// 	}
+	// 	return headSubmission.getInfo();
+	// }
 
-	private Submission submitToDhisAtrOptCombo(List<String> row, Submission submission, String name, Integer year,
-			Integer month) throws DHISIntegratorException, JSONException, SQLException {
-		JSONObject reportConfig = getConfig(properties.reportsJson);
+	// private Submission submitToDhisAtrOptCombo(List<String> row, Submission submission, String name, Integer year,
+	// 		Integer month) throws DHISIntegratorException, JSONException, SQLException {
+	// 	JSONObject reportConfig = getConfig(properties.reportsJson);
 
-		JSONObject childReport = reportConfig.getJSONObject(name).getJSONObject("config").getJSONArray("reports")
-				.getJSONObject(0); // TODO: why always 0 ?
+	// 	JSONObject childReport = reportConfig.getJSONObject(name).getJSONObject("config").getJSONArray("reports")
+	// 			.getJSONObject(0); // TODO: why always 0 ?
 
-		JSONObject dhisConfig = getDHISConfig(name);
-		ReportDateRange dateRange = new DateConverter().getDateRange(year, month);
-		List<Object> programDataValue = getProgramDataValuesAttrOptCombo(row, childReport,
-				dhisConfig.getJSONObject("reports"), dateRange);
+	// 	JSONObject dhisConfig = getDHISConfig(name);
+	// 	ReportDateRange dateRange = new DateConverter().getDateRange(year, month);
+	// 	List<Object> programDataValue = getProgramDataValuesAttrOptCombo(row, childReport,
+	// 			dhisConfig.getJSONObject("reports"), dateRange);
 
-		JSONObject programDataValueSet = new JSONObject();
-		programDataValueSet.put("dataset", dhisConfig.getString("dataset"));
-		programDataValueSet.put("orgUnit", dhisConfig.getString("orgUnit"));
-		programDataValueSet.put("dataValues", programDataValue);
-		programDataValueSet.put("period", format("%d%02d", year, month));
-		programDataValueSet.put("attributeOptionCombo", row.get(row.size() - 1));
+	// 	JSONObject programDataValueSet = new JSONObject();
+	// 	programDataValueSet.put("dataset", dhisConfig.getString("dataset"));
+	// 	programDataValueSet.put("orgUnit", dhisConfig.getString("orgUnit"));
+	// 	programDataValueSet.put("dataValues", programDataValue);
+	// 	programDataValueSet.put("period", format("%d%02d", year, month));
+	// 	programDataValueSet.put("attributeOptionCombo", row.get(row.size() - 1));
 
-		ResponseEntity<String> responseEntity = dHISClient.post(SUBMISSION_ENDPOINT, programDataValueSet);
-		submission.setPostedData(programDataValueSet);
-		submission.setResponse(responseEntity);
-		return submission;
-	}
+	// 	ResponseEntity<String> responseEntity = dHISClient.post(SUBMISSION_ENDPOINT, programDataValueSet);
+	// 	submission.setPostedData(programDataValueSet);
+	// 	submission.setResponse(responseEntity);
+	// 	return submission;
+	// }
 
 	@RequestMapping(path = "/submission-log/download", produces = "text/csv")
 	public FileSystemResource downloadSubmissionLog(HttpServletResponse response) throws FileNotFoundException {
@@ -441,11 +441,11 @@ public class DHISIntegrator {
 	}
 
 	private Submission submitToDHIS(Submission submission, String name, Integer year,
-									Integer month, Integer week)
+									Integer month, Integer week, String locationUUID)
 			throws DHISIntegratorException, JSONException, IOException {
 		JSONObject reportConfig = getConfig(properties.reportsJson);
 
-		List<JSONObject> childReports = new ArrayList<JSONObject>();
+		List<JSONObject> childReports = new ArrayList<>();
 
 		if ("ElisGeneric".equalsIgnoreCase(reportConfig.getJSONObject(name).getString("type"))) {
 			JSONObject reportObj = new JSONObject();
@@ -464,6 +464,12 @@ public class DHISIntegrator {
 		}
 
 		JSONObject dhisConfig = getDHISConfig(name);
+
+		String orgUnit = getOrgUnit(locationUUID);
+
+		if (orgUnit == null) {
+			orgUnit = dhisConfig.getString("orgUnit");
+		}
 
 		ReportDateRange dateRange;
 		String period;
@@ -484,10 +490,10 @@ public class DHISIntegrator {
 		}
 
 		List<Object> programDataValue = getProgramDataValues(childReports, dhisConfig.getJSONObject("reports"),
-				dateRange);
+				dateRange, locationUUID);
 
 		JSONObject programDataValueSet = new JSONObject();
-		programDataValueSet.put("orgUnit", dhisConfig.getString("orgUnit"));
+		programDataValueSet.put("orgUnit", orgUnit);
 		programDataValueSet.put("dataSet", dhisConfig.getString("dataSet"));
 		programDataValueSet.put("dataValues", programDataValue);
 		programDataValueSet.put("period", period);
@@ -498,6 +504,32 @@ public class DHISIntegrator {
 		submission.setPostedData(programDataValueSet);
 		submission.setResponse(responseEntity);
 		return submission;
+	}
+
+	private  String getOrgUnit(String locationUUID) throws DHISIntegratorException{
+		JSONObject dhisLocationConfig = getDHISConfig("location");
+		JSONArray locations = dhisLocationConfig.getJSONArray("locations");
+
+		for (int i = 0; i < locations.length(); i++) {
+            JSONObject jsonObject = locations.getJSONObject(i);
+            if (jsonObject.has("uuid") && jsonObject.getString("uuid").equals(locationUUID)) {
+                return jsonObject.optString("orgUnit", null);
+            }
+        }
+        return null;
+	}
+
+	private  String getLocationName(String locationUUID) throws DHISIntegratorException{
+		JSONObject dhisLocationConfig = getDHISConfig("location");
+		JSONArray locations = dhisLocationConfig.getJSONArray("locations");
+
+		for (int i = 0; i < locations.length(); i++) {
+            JSONObject jsonObject = locations.getJSONObject(i);
+            if (jsonObject.has("uuid") && jsonObject.getString("uuid").equals(locationUUID)) {
+                return jsonObject.optString("display", null);
+            }
+        }
+        return null;
 	}
 
 	private JSONObject getConfig(String configFile) throws DHISIntegratorException {
@@ -511,6 +543,7 @@ public class DHISIntegrator {
 	private Results getResult(String sql, String type, ReportDateRange dateRange) throws DHISIntegratorException {
 		String formattedSql = sql.replaceAll("#startDate#", dateRange.getStartDate()).replaceAll("#endDate#",
 				dateRange.getEndDate());
+
 		return databaseDriver.executeQuery(formattedSql, type);
 	}
 
@@ -523,11 +556,11 @@ public class DHISIntegrator {
 	}
 
 	private List<Object> getProgramDataValues(List<JSONObject> reportSqlConfigs, JSONObject reportDHISConfigs,
-			ReportDateRange dateRange) throws DHISIntegratorException, JSONException, IOException {
+			ReportDateRange dateRange, String locationUUID) throws DHISIntegratorException, JSONException, IOException {
 		ArrayList<Object> programDataValues = new ArrayList<>();
 
 		for (JSONObject report : reportSqlConfigs) {
-			JSONArray dataValues = getReportDataElements(reportDHISConfigs, dateRange, report);
+			JSONArray dataValues = getReportDataElements(reportDHISConfigs, dateRange, report, locationUUID);
 			programDataValues.addAll(jsonArrayToList(dataValues));
 		}
 		return programDataValues;
@@ -548,22 +581,76 @@ public class DHISIntegrator {
 		return programDataValues;
 	}
 
-	private JSONArray getReportDataElements(JSONObject reportDHISConfigs, ReportDateRange dateRange, JSONObject report)
+	private JSONArray getReportDataElements(JSONObject reportDHISConfigs, ReportDateRange dateRange, JSONObject report, String locationUUID)
 			throws DHISIntegratorException, JSONException, IOException {
 		JSONArray dataValues = new JSONArray();
+		JSONObject reportConfig = reportDHISConfigs.getJSONObject(report.getString("name"));
+		JSONObject parametersToUpdate = new JSONObject();
+
 		try {
-			dataValues = reportDHISConfigs.getJSONObject(report.getString("name")).getJSONArray("dataValues");
+			parametersToUpdate = reportConfig.getJSONObject("parameters");
+		} catch (JSONException e) {
+			logger.warn("Not able to fetch variables, Error :" + e);
+		}
+
+		try {
+			dataValues = reportConfig.getJSONArray("dataValues");
 		} catch (JSONException e) {
 			throw new DHISIntegratorException(e.getMessage(), e);
 		}
 		String sqlPath = report.getJSONObject("config").getString("sqlPath");
 		String type = report.getString("type");
-		Results results = getResult(getContent(sqlPath), type, dateRange);
+		String sqlFileContent = getContent(sqlPath);
+
+		// Replace #locationName
+		String locationName = getLocationName(locationUUID);
+		sqlFileContent = sqlFileContent.replaceAll("#locationName#", locationName);
+
+		if (sqlFileContent != null && parametersToUpdate != null) {
+			JSONArray parametersNames = parametersToUpdate.names();
+			if (parametersNames != null && parametersNames.length() > 0) {
+				for (int i = 0; i < parametersNames.length(); i++) {
+					String key = parametersNames.getString(i);
+
+					Object valueObject = parametersToUpdate.get(key);
+					String replacement;
+
+					if (valueObject instanceof JSONArray) {
+						JSONArray valueArray = (JSONArray) valueObject;
+						List<String> values = new ArrayList<>();
+						for (int j = 0; j < valueArray.length(); j++) {
+							values.add(valueArray.getString(j));
+						}
+						replacement = String.join("\", \"", values);
+					} else {
+						replacement = (String) valueObject;
+					}
+					sqlFileContent = sqlFileContent.replaceAll(key, replacement);
+				}
+			}
+		}
+
+
+		Results results = getResult(sqlFileContent, type, dateRange);
+
+		JSONArray updatedDataValues = new JSONArray();
+
 		for (Object dataValue_ : jsonArrayToList(dataValues)) {
 			JSONObject dataValue = (JSONObject) dataValue_;
-			updateDataElements(results, dataValue);
+			JSONObject columnMappings = reportConfig.getJSONObject("columnMappings");
+
+			Map<String, Object> matchingRow = results.findRowByKeyValue(columnMappings.getString("nameColumn"), dataValue.getString("fieldValue"));
+
+			if (matchingRow != null) {
+				Object value = matchingRow.get(columnMappings.getString("valueColumn"));
+				if (value != null) {
+					dataValue.put("value", value);
+				}
+				dataValue.remove("fieldValue");
+				updatedDataValues.put(dataValue);
+			}
 		}
-		return dataValues;
+		return updatedDataValues;
 	}
 
 	private List<JSONObject> jsonArrayToList(JSONArray elements) {
@@ -572,10 +659,10 @@ public class DHISIntegrator {
 		return list;
 	}
 
-	private void updateDataElements(Results results, JSONObject dataElement) throws JSONException {
-		String value = results.get(dataElement.getInt("row"), dataElement.getInt("column"));
-		dataElement.put("value", value);
-	}
+	// private void updateDataElements(Results results, JSONObject dataElement) throws JSONException {
+	// 	String value = results.get(dataElement.getInt("row"), dataElement.getInt("column"));
+	// 	dataElement.put("value", value);
+	// }
 
 	private void updateDataElementsAtrOptCombo(List<String> row, JSONObject dataElement) throws JSONException {
 		String value = row.get(dataElement.getInt("column") - 1);

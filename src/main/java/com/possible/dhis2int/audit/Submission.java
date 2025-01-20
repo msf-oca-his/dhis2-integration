@@ -8,25 +8,25 @@ import org.json.JSONTokener;
 import org.springframework.http.ResponseEntity;
 
 public class Submission {
-	
+
 	public static final String FILE_NAME = "'data_submitted_on_'yyyyMMddHHmmss'.json'";
-	
+
 	private final String fileName;
-	
+
 	private JSONObject postedData;
-	
+
 	private ResponseEntity<String> response;
-	
+
 	private Exception exception;
 
 	private Status status;
-	
+
 	private final static Integer INDENT_FACTOR = 1;
-	
+
 	public Submission() {
 		this.fileName = DateTimeFormat.forPattern(FILE_NAME).print(new DateTime());
 	}
-	
+
 	public String toStrings() throws JSONException {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("response", response==null? null: response.getBody());
@@ -34,35 +34,35 @@ public class Submission {
 		jsonObject.put("request",postedData);
 		return jsonObject.toString(INDENT_FACTOR);
 	}
-	
+
 	public ResponseEntity<String> getResponseEntity() {
 		return response;
 	}
-	
+
 	public String getFileName() {
 		return fileName;
 	}
-	
+
 	public JSONObject getPostedData() {
 		return postedData;
 	}
-	
+
 	public void setPostedData(JSONObject postedData) {
 		this.postedData = postedData;
 	}
-	
+
 	public void setResponse(ResponseEntity<String> response) {
 		this.response = response;
 	}
-	
+
 	public void setStatus(Status stat) {
 		this.status = stat;
 	}
-	
+
 	public Status retrieveStatus() {
 		return status;
 	}
-	
+
 	public Status getStatus() throws JSONException {
 		if (response==null || response.getStatusCodeValue() != 200) {
 			return Status.Failure;
@@ -79,11 +79,11 @@ public class Submission {
 		}
 		return Status.Success;
 	}
-	
+
 	public void setException(Exception exception) {
 		this.exception = exception;
 	}
-	
+
 	public String getInfo() throws JSONException {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("status",getStatus());
@@ -91,19 +91,19 @@ public class Submission {
 		jsonObject.put("response", response==null? null: response.getBody());
 		return jsonObject.toString(INDENT_FACTOR);
 	}
-	
+
 	private boolean hasConflicts(JSONObject responseBody) {
 		return responseBody.has("conflicts");
 	}
-	
+
 	private boolean isIgnored(JSONObject responseBody) throws JSONException {
-		return responseBody.getJSONObject("importCount").getInt("ignored") > 0;
+		return responseBody.getJSONObject("response").getJSONObject("importCount").getInt("ignored") > 0;
 	}
-	
+
 	private boolean isServerError(JSONObject responseBody) throws JSONException {
 		return "ERROR".equals(responseBody.getString("status"));
 	}
-	
+
 	public enum Status {
 		Success,
 		Failure,
