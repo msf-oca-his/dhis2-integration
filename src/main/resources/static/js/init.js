@@ -17,6 +17,53 @@ const supportedYears = {
 
 var spinner = spinner || {};
 
+const locations = [
+  {
+    "uuid": "707b6093-f4f1-4333-9794-a18580f5482b",
+    "display": "IDC Belantik"
+  },
+  {
+    "uuid": "a8d1f331-deb1-4756-8f23-ec0f5d4d81bc",
+    "display": "IDC Bidor"
+  },
+  {
+    "uuid": "a827c412-c28b-4072-9b62-a6beef155a32",
+    "display": "IDC Juru"
+  },
+  {
+    "uuid": "6bb6887a-3ec7-4272-8927-c5e6acbae742",
+    "display": "IDC Langkap"
+  },
+  {
+    "uuid": "a185680f-e265-4985-8829-ecdf9a7b94c6",
+    "display": "Kepala Batas MC"
+  },
+  {
+    "uuid": "4b18bfe6-4335-446f-a964-8f70e1b4d5a4",
+    "display": "Penang Fixed Clinic KM6"
+  },
+  {
+    "uuid": "02839464-ca25-4b06-b252-23bfadfea7b2",
+    "display": "Penang Sungai Dua Community Hall"
+  },
+  {
+    "uuid": "bf90fb5e-34ec-4c2f-9662-1cf88674f661",
+    "display": "Simpang Ampat MC"
+  },
+  {
+    "uuid": "9013b856-0415-49d3-b66a-6049c1bffc65",
+    "display": "Tanjung Tokong MC"
+  },
+  {
+    "uuid": "749f6047-60a0-4083-9348-88067e874b00",
+    "display": "Sungai Pinang MC"
+  },
+  {
+    "uuid": "8f6dcce0-a3a4-42d8-93e4-8bff3e20f136",
+    "display": "Kedah MC"
+  }
+]
+
 const months = [
   "January",
   "February",
@@ -52,21 +99,7 @@ $(document).ready(function () {
   });
 });
 
-const fetchLocations = async () => {
-  const url = "/openmrs/ws/rest/v1/location?v=custom:(uuid,display)";
-
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.results;
-  } catch (error) {
-    console.error("Error fetching locations:", error);
-  }
-};
-
-async function populateDropdown() {
-  const locations = await fetchLocations();
+function populateDropdown() {
   const selectElement = document.getElementById("openmrs-location");
 
   locations.forEach((location) => {
