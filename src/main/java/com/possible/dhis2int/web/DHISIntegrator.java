@@ -465,7 +465,7 @@ public class DHISIntegrator {
 
 		JSONObject dhisConfig = getDHISConfig(name);
 
-		String orgUnit = getOrgUnit(locationUUID);
+		String orgUnit = getLocationInfo(name, locationUUID, "orgUnit");
 
 		if (orgUnit == null) {
 			orgUnit = dhisConfig.getString("orgUnit");
@@ -489,8 +489,9 @@ public class DHISIntegrator {
 			period = format("%dW%d", year, week);
 		}
 
+		String locationName = getLocationInfo(name, locationUUID, "display");
 		List<Object> programDataValue = getProgramDataValues(childReports, dhisConfig.getJSONObject("reports"),
-				dateRange, locationUUID);
+				dateRange, locationName);
 
 		JSONObject programDataValueSet = new JSONObject();
 		programDataValueSet.put("orgUnit", orgUnit);
@@ -506,31 +507,18 @@ public class DHISIntegrator {
 		return submission;
 	}
 
-	private  String getOrgUnit(String locationUUID) throws DHISIntegratorException{
-		JSONObject dhisLocationConfig = getDHISConfig("location");
+	private  String getLocationInfo(String programName, String locationUUID, String fieldValueToReturn) throws DHISIntegratorException{
+		JSONObject dhisLocationConfig = getDHISConfig("orgUnitMappings/" + programName + "_location");
 		JSONArray locations = dhisLocationConfig.getJSONArray("locations");
 
 		for (int i = 0; i < locations.length(); i++) {
             JSONObject jsonObject = locations.getJSONObject(i);
             if (jsonObject.has("uuid") && jsonObject.getString("uuid").equals(locationUUID)) {
-                return jsonObject.optString("orgUnit", null);
+                return jsonObject.optString(fieldValueToReturn, null);
             }
         }
         return null;
-	}
-
-	private  String getLocationName(String locationUUID) throws DHISIntegratorException{
-		JSONObject dhisLocationConfig = getDHISConfig("location");
-		JSONArray locations = dhisLocationConfig.getJSONArray("locations");
-
-		for (int i = 0; i < locations.length(); i++) {
-            JSONObject jsonObject = locations.getJSONObject(i);
-            if (jsonObject.has("uuid") && jsonObject.getString("uuid").equals(locationUUID)) {
-                return jsonObject.optString("display", null);
-            }
-        }
-        return null;
-	}
+	};
 
 	private JSONObject getConfig(String configFile) throws DHISIntegratorException {
 		try {
@@ -556,11 +544,11 @@ public class DHISIntegrator {
 	}
 
 	private List<Object> getProgramDataValues(List<JSONObject> reportSqlConfigs, JSONObject reportDHISConfigs,
-			ReportDateRange dateRange, String locationUUID) throws DHISIntegratorException, JSONException, IOException {
+			ReportDateRange dateRange, String locationName) throws DHISIntegratorException, JSONException, IOException {
 		ArrayList<Object> programDataValues = new ArrayList<>();
 
 		for (JSONObject report : reportSqlConfigs) {
-			JSONArray dataValues = getReportDataElements(reportDHISConfigs, dateRange, report, locationUUID);
+			JSONArray dataValues = getReportDataElements(reportDHISConfigs, dateRange, report, locationName);
 			programDataValues.addAll(jsonArrayToList(dataValues));
 		}
 		return programDataValues;
@@ -581,7 +569,7 @@ public class DHISIntegrator {
 		return programDataValues;
 	}
 
-	private JSONArray getReportDataElements(JSONObject reportDHISConfigs, ReportDateRange dateRange, JSONObject report, String locationUUID)
+	private JSONArray getReportDataElements(JSONObject reportDHISConfigs, ReportDateRange dateRange, JSONObject report, String locationName)
 			throws DHISIntegratorException, JSONException, IOException {
 		JSONArray dataValues = new JSONArray();
 		JSONObject reportConfig = reportDHISConfigs.getJSONObject(report.getString("name"));
@@ -603,7 +591,6 @@ public class DHISIntegrator {
 		String sqlFileContent = getContent(sqlPath);
 
 		// Replace #locationName
-		String locationName = getLocationName(locationUUID);
 		sqlFileContent = sqlFileContent.replaceAll("#locationName#", locationName);
 
 		if (sqlFileContent != null && parametersToUpdate != null) {
