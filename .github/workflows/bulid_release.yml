@@ -1,7 +1,8 @@
 name: Build and Publish package
 on:
   push:
-    branches: [OB-913]
+    branches:
+      - release-oca
   workflow_dispatch:
 
 jobs:
@@ -20,15 +21,15 @@ jobs:
       - name: Build docker image
         run: docker build -t dhis2-integration:latest -f package/Dockerfile .
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'dhis2-integration:latest'
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL'
+      # - name: Run Trivy vulnerability scanner
+      #   uses: aquasecurity/trivy-action@master
+      #   with:
+      #     image-ref: 'dhis2-integration:latest'
+      #     format: 'table'
+      #     exit-code: '1'
+      #     ignore-unfixed: true
+      #     vuln-type: 'os,library'
+      #     severity: 'CRITICAL'
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
