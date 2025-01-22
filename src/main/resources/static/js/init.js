@@ -17,53 +17,6 @@ const supportedYears = {
 
 var spinner = spinner || {};
 
-const locations = [
-  {
-    "uuid": "707b6093-f4f1-4333-9794-a18580f5482b",
-    "display": "IDC Belantik"
-  },
-  {
-    "uuid": "a8d1f331-deb1-4756-8f23-ec0f5d4d81bc",
-    "display": "IDC Bidor"
-  },
-  {
-    "uuid": "a827c412-c28b-4072-9b62-a6beef155a32",
-    "display": "IDC Juru"
-  },
-  {
-    "uuid": "6bb6887a-3ec7-4272-8927-c5e6acbae742",
-    "display": "IDC Langkap"
-  },
-  {
-    "uuid": "a185680f-e265-4985-8829-ecdf9a7b94c6",
-    "display": "Kepala Batas MC"
-  },
-  {
-    "uuid": "4b18bfe6-4335-446f-a964-8f70e1b4d5a4",
-    "display": "Penang Fixed Clinic KM6"
-  },
-  {
-    "uuid": "02839464-ca25-4b06-b252-23bfadfea7b2",
-    "display": "Penang Sungai Dua Community Hall"
-  },
-  {
-    "uuid": "bf90fb5e-34ec-4c2f-9662-1cf88674f661",
-    "display": "Simpang Ampat MC"
-  },
-  {
-    "uuid": "9013b856-0415-49d3-b66a-6049c1bffc65",
-    "display": "Tanjung Tokong MC"
-  },
-  {
-    "uuid": "749f6047-60a0-4083-9348-88067e874b00",
-    "display": "Sungai Pinang MC"
-  },
-  {
-    "uuid": "8f6dcce0-a3a4-42d8-93e4-8bff3e20f136",
-    "display": "Kedah MC"
-  }
-]
-
 const months = [
   "January",
   "February",
@@ -92,23 +45,24 @@ $(document).ready(function () {
     .then(registerOnchangeOnComment)
     .then(getLogStatus);
 
-  populateDropdown();
-
   Handlebars.registerHelper("ifEquals", function (arg1, arg2, options) {
     return arg1 === arg2 ? options.fn(this) : options.inverse(this);
   });
+
+  Handlebars.registerHelper("truncate", function (str, len) {
+    if (str && str.length > len) {
+      return str.substring(0, len) + "...";
+    }
+    return str || "";
+  });
 });
 
-function populateDropdown() {
-  const selectElement = document.getElementById("openmrs-location");
-
-  locations.forEach((location) => {
-    const option = document.createElement("option");
-    option.value = location.uuid;
-    option.textContent = location.display;
-    selectElement.appendChild(option);
-  });
-};
+function toggleDetails(button) {
+  const fullResponse = button.nextElementSibling;
+  const isVisible = fullResponse.style.display === "block";
+  fullResponse.style.display = isVisible ? "none" : "block";
+  button.textContent = isVisible ? "Show More" : "Show Less";
+}
 
 function isAuthenticated() {
   return $.get("is-logged-in")
@@ -210,20 +164,22 @@ function getDHISPrograms() {
 
 function putStatus(data, index) {
   element("comment", index).html(data.comment).html();
-  if (data.status == "Success" || data.status == "Complete") {
-    var template = $("#success-status-template").html();
-    element("status", index).html(renderTemplate(template, data));
-    return;
-  }
-  var template = $("#failure-status-template").html();
-  data.message = JSON.stringify(data.exception || data.response);
-  element("status", index).html(renderTemplate(template, data));
-  element("status", index)
-    .find(".status-failure")
-    .on("click", function () {
-      alert(data.message);
-      console.log(data.message);
-    });
+  var statusTemplate = $("#status-template").html();
+  var responseTemplate = $("#response-template").html();
+
+  element("status", index).html(
+    renderTemplate(statusTemplate, { status: data.status })
+  );
+  element("status", index).find(".status-response").on("click", function () {
+
+    if (data.responses) {
+      $(".popup .content").html(
+        renderTemplate(responseTemplate, { responses: data.responses })
+      );
+    } else {
+      $(".popup .content").html(data.exception);
+    }
+  });
 }
 
 function download(index) {
@@ -274,7 +230,6 @@ function submit(index, reportType, attribute) {
   var year = element("year", index).val();
   var month = element("month", index).val();
   var week = element("week", index).val();
-  var locationUUID = $("#openmrs-location").val();
   var programName = element("program-name", index).html();
   var comment = element("comment", index).val();
 
@@ -291,8 +246,7 @@ function submit(index, reportType, attribute) {
     month: month,
     week: week,
     name: programName,
-    comment: comment,
-    location_uuid: locationUUID,
+    comment: comment
   };
 
   disableBtn(element("submit", index));
@@ -303,9 +257,15 @@ function submit(index, reportType, attribute) {
   }
   $.get(submitTo, parameters)
     .done(function (data) {
-      data = JSON.parse(data);
+
       if (!$.isEmptyObject(data)) {
-        putStatus(data, index);
+        putStatus(
+          {
+            status: "Success",
+            responses: data,
+          },
+          index
+        );
       }
     })
     .fail(function (response) {
@@ -368,7 +328,13 @@ function getStatus(reportType, index) {
         element("comment", index).html("");
         element("status", index).html("");
       } else {
-        putStatus(data, index);
+        putStatus(
+          {
+            status: data.status,
+            responses: [data],
+          },
+          index
+        );
       }
     })
     .fail(function (response) {
@@ -425,8 +391,8 @@ function registerOnchangeOnComment() {
 }
 
 function getLogStatus() {
-  $("#programs .month-selector").each(function (index) {
-    getStatus(index);
+  $("#programs .week-selector").each(function (index) {
+    getStatus("weekly", index);
   });
 }
 

@@ -167,13 +167,13 @@ public class DHISIntegrator {
 	}
 
 	@RequestMapping(path = "/submit-to-dhis")
-	public String submitToDHIS(
+	public List<Map<String, Object>> submitToDHIS(
 			@RequestParam("name") String program, @RequestParam("year") Integer year,
-			@RequestParam("location_uuid") String locationUUID,
 			@RequestParam(value = "month", required = false) Integer month,
 			@RequestParam(value = "week", required = false) Integer week,
 			@RequestParam("comment") String comment, HttpServletRequest clientReq, HttpServletResponse clientRes)
 			throws IOException, JSONException {
+
 		// Check if either month or week is provided, but not both
 		if (month == null && week == null) {
 			throw new IllegalArgumentException("Either 'month' or 'week' must be provided.");
@@ -184,36 +184,48 @@ public class DHISIntegrator {
 		};
 
 		String userName = new Cookies(clientReq).getValue(BAHMNI_USER);
-		Submission submission = new Submission();
-		String filePath = submittedDataStore.getAbsolutePath(submission);
-		Status status;
-		try {
-			submitToDHIS(submission, program, year, month, week, locationUUID);
-			status = submission.getStatus();
+		JSONObject dhisLocationConfig = getDHISConfig("locations");
+		JSONArray locations = dhisLocationConfig.getJSONArray("locations");
+		List<Map<String, Object>> submissionInfos = new ArrayList<>();
 
-		} catch (DHISIntegratorException | JSONException e) {
-			status = Failure;
-			submission.setException(e);
-			logger.error(DHIS_SUBMISSION_FAILED, e);
-		} catch (Exception e) {
-			status = Failure;
-			submission.setException(e);
-			logger.error(Messages.INTERNAL_SERVER_ERROR, e);
-		}
+		for (int i = 0; i < locations.length(); i++) {
+			JSONObject location = locations.getJSONObject(i);
+			Submission submission = new Submission();
+			String filePath = submittedDataStore.getAbsolutePath(submission);
+			Status status;
 
-		submittedDataStore.write(submission);
-		submissionLog.log(program, userName, comment, status, filePath);
+			try {
+					submitToDHIS(submission, program, year, month, week, location.getString("name"));
+					status = submission.getStatus();
+			} catch (DHISIntegratorException | JSONException e) {
+					status = Failure;
+					submission.setException(e);
+					logger.error(DHIS_SUBMISSION_FAILED, e);
+			} catch (Exception e) {
+					status = Failure;
+					submission.setException(e);
+					logger.error(Messages.INTERNAL_SERVER_ERROR, e);
+			}
 
-		String period;
-		if (month != null) {
-			period = format("%dW%d", year, month);
-		} else {
-			period = format("%dW%d", year, week);
-		}
+			submittedDataStore.write(submission);
+			submissionLog.log(program, userName, comment, status, filePath);
 
-		recordLog(userName, program, year, period, submission.getInfo(), status, comment);
+			String period;
+			if (month != null) {
+					period = format("%dM%d", year, month);
+			} else {
+					period = format("%dW%d", year, week);
+			}
 
-		return submission.getInfo();
+			recordLog(userName, program, year, period, submission.toString(), status, comment);
+
+			Map<String, Object> submissionInfo = submission.getInfo().toMap();
+			if (status != Status.NoData) {
+				submissionInfos.add(submissionInfo);
+			}
+    }
+
+    return submissionInfos;
 	}
 
 	@RequestMapping(path = "/submit-to-dhis_report_status")
@@ -249,8 +261,8 @@ public class DHISIntegrator {
 		}
 
 
-		recordLog(userName, program, year, period, submission.getInfo(), status, comment);
-		return submission.getInfo();
+		recordLog(userName, program, year, period, submission.toString(), status, comment);
+		return submission.toString();
 	}
 
 	private String recordLog(String userName, String program, Integer year, String period, String log, Status status,
@@ -441,7 +453,7 @@ public class DHISIntegrator {
 	}
 
 	private Submission submitToDHIS(Submission submission, String name, Integer year,
-									Integer month, Integer week, String locationUUID)
+									Integer month, Integer week, String locationName)
 			throws DHISIntegratorException, JSONException, IOException {
 		JSONObject reportConfig = getConfig(properties.reportsJson);
 
@@ -465,7 +477,7 @@ public class DHISIntegrator {
 
 		JSONObject dhisConfig = getDHISConfig(name);
 
-		String orgUnit = getLocationInfo(name, locationUUID, "orgUnit");
+		String orgUnit = getOrgUnit(name, locationName);
 
 		if (orgUnit == null) {
 			orgUnit = dhisConfig.getString("orgUnit");
@@ -489,7 +501,6 @@ public class DHISIntegrator {
 			period = format("%dW%d", year, week);
 		}
 
-		String locationName = getLocationInfo(name, locationUUID, "display");
 		List<Object> programDataValue = getProgramDataValues(childReports, dhisConfig.getJSONObject("reports"),
 				dateRange, locationName);
 
@@ -501,23 +512,30 @@ public class DHISIntegrator {
 
 		logger.info("Inside getQueryLog method" + programDataValueSet);
 
-		ResponseEntity<String> responseEntity = dHISClient.post(SUBMISSION_ENDPOINT, programDataValueSet);
-		submission.setPostedData(programDataValueSet);
-		submission.setResponse(responseEntity);
+		submission.setLocationName(locationName);
+		if (!programDataValue.isEmpty()){
+			ResponseEntity<String> responseEntity = dHISClient.post(SUBMISSION_ENDPOINT, programDataValueSet);
+			submission.setResponse(responseEntity);
+			submission.setPostedData(programDataValueSet);
+		} else {
+			submission.setResponse(null);
+		}
+
 		return submission;
 	}
 
-	private  String getLocationInfo(String programName, String locationUUID, String fieldValueToReturn) throws DHISIntegratorException{
-		JSONObject dhisLocationConfig = getDHISConfig("orgUnitMappings/" + programName + "_location");
+	private  String getOrgUnit(String programName, String locationName) throws DHISIntegratorException{
+		JSONObject dhisLocationConfig = getDHISConfig("locations");
 		JSONArray locations = dhisLocationConfig.getJSONArray("locations");
 
 		for (int i = 0; i < locations.length(); i++) {
-            JSONObject jsonObject = locations.getJSONObject(i);
-            if (jsonObject.has("uuid") && jsonObject.getString("uuid").equals(locationUUID)) {
-                return jsonObject.optString(fieldValueToReturn, null);
-            }
-        }
-        return null;
+				JSONObject jsonObject = locations.getJSONObject(i);
+
+				if (jsonObject.has("name") && jsonObject.getString("name").equalsIgnoreCase(locationName)) {
+					return jsonObject.optString(programName, null);
+				}
+		}
+		return null;
 	};
 
 	private JSONObject getConfig(String configFile) throws DHISIntegratorException {

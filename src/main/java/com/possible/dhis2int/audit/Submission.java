@@ -13,6 +13,8 @@ public class Submission {
 
 	private final String fileName;
 
+	private String locationName;
+
 	private JSONObject postedData;
 
 	private ResponseEntity<String> response;
@@ -29,9 +31,10 @@ public class Submission {
 
 	public String toStrings() throws JSONException {
 		JSONObject jsonObject = new JSONObject();
-		jsonObject.put("response", response==null? null: response.getBody());
+		jsonObject.put("status",getStatus());
+		jsonObject.put("locationName",getLocationName());
 		jsonObject.put("exception",exception);
-		jsonObject.put("request",postedData);
+		jsonObject.put("response", response==null? null: response.getBody());
 		return jsonObject.toString(INDENT_FACTOR);
 	}
 
@@ -63,8 +66,18 @@ public class Submission {
 		return status;
 	}
 
+	public String getLocationName() {
+		return locationName;
+	}
+
+	public void setLocationName(String locationName) {
+			this.locationName = locationName;
+	}
+
 	public Status getStatus() throws JSONException {
-		if (response==null || response.getStatusCodeValue() != 200) {
+		if (this.postedData == null && response==null) {
+			return Status.NoData;
+		} else if (response==null || response.getStatusCodeValue() != 200) {
 			return Status.Failure;
 		}
 		JSONObject responseBody;
@@ -84,12 +97,13 @@ public class Submission {
 		this.exception = exception;
 	}
 
-	public String getInfo() throws JSONException {
+	public JSONObject getInfo() throws JSONException {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("status",getStatus());
+		jsonObject.put("locationName",getLocationName());
 		jsonObject.put("exception",exception);
 		jsonObject.put("response", response==null? null: response.getBody());
-		return jsonObject.toString(INDENT_FACTOR);
+		return jsonObject;
 	}
 
 	private boolean hasConflicts(JSONObject responseBody) {
@@ -108,6 +122,7 @@ public class Submission {
 		Success,
 		Failure,
 		Complete,
-		Incomplete
+		Incomplete,
+		NoData
 	}
 }

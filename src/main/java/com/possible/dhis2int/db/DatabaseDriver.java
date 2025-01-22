@@ -96,16 +96,16 @@ public class DatabaseDriver {
 			connection = DriverManager.getConnection(properties.openmrsDBUrl);
 			PreparedStatement ps = connection.prepareStatement(
 
-					"SELECT * FROM  dhis2_log WHERE report_name = ? AND report_period = ? AND report_year = ? ORDER BY submitted_date DESC LIMIT 1");
+					"SELECT * FROM  dhis2_log WHERE report_name = ? AND report_period = ? AND report_year = ? AND status != 'NoData' ORDER BY submitted_date DESC LIMIT 1");
 			ps.setString(1, programName);
 			ps.setString(2, period);
 			ps.setInt(3, year);
 			resultSet = ps.executeQuery();
 			JSONObject jsonObject = new JSONObject();
 			while (resultSet.next()) {
-				jsonObject.put("status", resultSet.getString(5));
-				jsonObject.put("comment", resultSet.getString(6));
-				jsonObject.put("response", resultSet.getString(7));
+				jsonObject.put("response", resultSet.getString(5));
+				jsonObject.put("status", resultSet.getString(6));
+				jsonObject.put("comment", resultSet.getString(7));
 			}
 			log = jsonObject.toString(INDENT_FACTOR);
 		} catch (SQLException e) {
