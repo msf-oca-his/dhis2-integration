@@ -163,7 +163,6 @@ function getDHISPrograms() {
 }
 
 function putStatus(data, index) {
-  element("comment", index).html(data.comment).html();
   var statusTemplate = $("#status-template").html();
   var responseTemplate = $("#response-template").html();
 
@@ -172,9 +171,9 @@ function putStatus(data, index) {
   );
   element("status", index).find(".status-response").on("click", function () {
 
-    if (data.responses) {
+    if (data.results) {
       $(".popup .content").html(
-        renderTemplate(responseTemplate, { responses: data.responses })
+        renderTemplate(responseTemplate, { results: data.results })
       );
     } else {
       $(".popup .content").html(data.exception);
@@ -262,14 +261,14 @@ function submit(index, reportType, attribute) {
         putStatus(
           {
             status: "Success",
-            responses: data,
+            results: data,
           },
           index
         );
       }
     })
-    .fail(function (response) {
-      if (response.status == 403) {
+    .fail(function (result) {
+      if (result.status == 403) {
         putStatus(
           {
             status: "Failure",
@@ -281,7 +280,7 @@ function submit(index, reportType, attribute) {
       putStatus(
         {
           status: "Failure",
-          exception: response,
+          exception: result,
         },
         index
       );
@@ -331,7 +330,7 @@ function getStatus(reportType, index) {
         putStatus(
           {
             status: data.status,
-            responses: [data],
+            results: [data],
           },
           index
         );

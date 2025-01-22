@@ -31,10 +31,8 @@ public class Submission {
 
 	public String toStrings() throws JSONException {
 		JSONObject jsonObject = new JSONObject();
-		jsonObject.put("status",getStatus());
-		jsonObject.put("locationName",getLocationName());
-		jsonObject.put("exception",exception);
 		jsonObject.put("response", response==null? null: response.getBody());
+		jsonObject.put("exception",exception);
 		return jsonObject.toString(INDENT_FACTOR);
 	}
 
