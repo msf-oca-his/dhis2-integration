@@ -391,7 +391,7 @@ function registerOnchangeOnComment() {
 }
 
 function getLogStatus() {
-  $("#programs .week-selector").each(function (index) {
+  $("#programs-weekly .week-selector").each(function (index) {
     getStatus("weekly", index);
   });
 }

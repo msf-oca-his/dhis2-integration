@@ -217,7 +217,7 @@ public class DHISIntegrator {
 					period = format("%dW%d", year, week);
 			}
 
-			recordLog(userName, program, year, period, submission.toString(), status, comment);
+			recordLog(userName, program, year, period, submission.toStrings(), status, comment, location.getString("name"));
 
 			Map<String, Object> submissionInfo = submission.getInfo().toMap();
 			if (status != Status.NoData) {
@@ -261,12 +261,12 @@ public class DHISIntegrator {
 		}
 
 
-		recordLog(userName, program, year, period, submission.toString(), status, comment);
-		return submission.toString();
+		recordLog(userName, program, year, period, submission.toStrings(), status, comment, null);
+		return submission.toStrings();
 	}
 
 	private String recordLog(String userName, String program, Integer year, String period, String log, Status status,
-			String comment) throws IOException, JSONException {
+			String comment, String location) throws IOException, JSONException {
 		Date date = new Date();
 		Status submissionStatus = status;
 		if (status == Status.Failure) {
@@ -274,7 +274,7 @@ public class DHISIntegrator {
 		} else if (status == Status.Success) {
 			submissionStatus = Status.Complete;
 		}
-		Recordlog recordLog = new Recordlog(program, date, userName, log, submissionStatus, comment);
+		Recordlog recordLog = new Recordlog(program, date, userName, log, submissionStatus, comment, location);
 		databaseDriver.recordQueryLog(recordLog, period, year);
 		return "Saved";
 	}
