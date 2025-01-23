@@ -62,7 +62,7 @@ public class DatabaseDriver {
 		try {
 			connection = DriverManager.getConnection(properties.openmrsDBUrl);
 			PreparedStatement ps = connection.prepareStatement(
-					"INSERT INTO dhis2_log (report_name, submitted_date, submitted_by, report_log ,status, comment, report_period, report_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+					"INSERT INTO dhis2_log (report_name, submitted_date, submitted_by, report_log ,status, comment, report_period, report_year, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
 			Timestamp time = new Timestamp(record.getTime().getTime());
 			ps.setString(1, record.getEvent());
@@ -73,6 +73,7 @@ public class DatabaseDriver {
 			ps.setString(6, record.getComment());
 			ps.setString(7, period);
 			ps.setInt(8, year);
+			ps.setString(9, record.getLocation());
 
 			ps.executeUpdate();
 		} catch (SQLException e) {
@@ -96,16 +97,17 @@ public class DatabaseDriver {
 			connection = DriverManager.getConnection(properties.openmrsDBUrl);
 			PreparedStatement ps = connection.prepareStatement(
 
-					"SELECT * FROM  dhis2_log WHERE report_name = ? AND report_period = ? AND report_year = ? ORDER BY submitted_date DESC LIMIT 1");
+					"SELECT location, status, report_log  FROM  dhis2_log WHERE report_name = ? AND report_period = ? AND report_year = ? AND status != 'NoData' ORDER BY submitted_date DESC LIMIT 1");
 			ps.setString(1, programName);
 			ps.setString(2, period);
 			ps.setInt(3, year);
+
 			resultSet = ps.executeQuery();
 			JSONObject jsonObject = new JSONObject();
 			while (resultSet.next()) {
-				jsonObject.put("status", resultSet.getString(5));
-				jsonObject.put("comment", resultSet.getString(6));
-				jsonObject.put("response", resultSet.getString(7));
+				jsonObject.put("locationName", resultSet.getString(1));
+				jsonObject.put("status", resultSet.getString(2));
+				jsonObject.put("response", resultSet.getString(3));
 			}
 			log = jsonObject.toString(INDENT_FACTOR);
 		} catch (SQLException e) {

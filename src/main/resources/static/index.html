@@ -1,79 +1,74 @@
 <html>
-<head>
-<title>Dhis Integration</title>
-<link rel="shortcut icon" type="image/x-icon" href="/bahmni/favicon.ico">
-<link rel="stylesheet"
-	href="bower_components/nepali-date-picker/dist/nepaliDatePicker.min.css">
-<link rel="stylesheet"
-	href="bower_components/jquery-ui/themes/base/jquery-ui.min.css">
-<link rel="stylesheet" href="css/stylesheet.css">
-<script src="bower_components/jquery.min/index.js"></script>
-<script src="bower_components/jquery-ui/jquery-ui.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
-</head>
-<body>
+  <head>
+    <title>Dhis Integration</title>
+    <link rel="shortcut icon" type="image/x-icon" href="/bahmni/favicon.ico" />
+    <link rel="stylesheet"
+			href="bower_components/nepali-date-picker/dist/nepaliDatePicker.min.css" />
+    <link rel="stylesheet"
+      href="bower_components/jquery-ui/themes/base/jquery-ui.min.css"
+    />
+    <link rel="stylesheet" href="css/stylesheet.css" />
+    <script src="bower_components/jquery.min/index.js"></script>
+    <script src="bower_components/jquery-ui/jquery-ui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+  </head>
+  <body>
+    <div class="header">
+      <div class="dhisTitleWrapper">
+        <div class="home">
+          <a href="/bahmni/home" class="btn header-link">Home</a>
+        </div>
+        <div class="log">
+          <a href="/dhis-integration/submission-log/download"
+            class="btn header-link">Download log</a>
+        </div>
+      </div>
+    </div>
 
-	<div class="header">
-		<div class="dhisTitleWrapper">
-			<div class="home">
-				<a href="/bahmni/home" class="btn header-link">Home</a>
-			</div>
-			<div class="log">
-				<a href="/dhis-integration/submission-log/download"
-					class="btn header-link">Download log</a>
-			</div>
-		</div>
-	</div>
+    <div class="dhisWrapper">
+      <div id="tabs">
+        <ul>
+          <li><a href="#tab-weekly">Weekly</a></li>
+          <li><a href="#tab-monthly">Monthly</a></li>
+          <!-- <li><a href="#tab-yearly">Yearly</a></li> -->
+        </ul>
+        <div id="tab-weekly">
+          <div class="section-title">
+            <span>List Of HMIS Programs</span>
+          </div>
 
-	<div class="dhisWrapper">
-		<div class="location-select" id="locationOptions">
-			<label class="location">Location :</label>
-			<select class="location-selector" id="openmrs-location"></select>
-		</div>
+          <div class="dhisContent dhisContentHeader">
+            <div class="programName">Name</div>
+            <div class="weekOption">Reporting Week and Year</div>
+            <!-- <div class="downloadButton"></div> -->
+            <div class="comment">
+              Comments (<span class="mandate-comment" />)
+            </div>
+            <div class="submit">Commit To DHIS</div>
+            <div class="status">Reporting Status</div>
+          </div>
 
-		<div id="tabs">
-			<ul>
-				<li><a href="#tab-weekly">Weekly</a></li>
-				<li><a href="#tab-monthly">Monthly</a></li>
-				<!-- <li><a href="#tab-yearly">Yearly</a></li> -->
-			</ul>
-			<div id="tab-weekly">
-				<div class="section-title">
-					<span>List Of HMIS Programs</span>
-				</div>
+          <div id="programs-weekly"></div>
+        </div>
+        <div id="tab-monthly">
+          <div class="section-title">
+            <span>List Of HMIS Programs</span>
+          </div>
 
-				<div class="dhisContent dhisContentHeader">
-					<div class="programName">Name</div>
-					<div class="weekOption">Reporting Week and Year</div>
-					<!-- <div class="downloadButton"></div> -->
-					<div class="comment">
-						Comments (<span class="mandate-comment" />)
-					</div>
-					<div class="submit">Commit To DHIS</div>
-					<div class="status">Reporting Status</div>
-				</div>
+          <div class="dhisContent dhisContentHeader">
+            <div class="programName">Name</div>
+            <div class="monthOption">Reporting Month and Year</div>
+            <!-- <div class="downloadButton"></div> -->
+            <div class="comment">
+              Comments (<span class="mandate-comment" />)
+            </div>
+            <div class="submit">Commit To DHIS</div>
+            <div class="status">Reporting Status</div>
+          </div>
 
-				<div id="programs-weekly"></div>
-			</div>
-			<div id="tab-monthly">
-				<div class="section-title">
-					<span>List Of HMIS Programs</span>
-				</div>
-
-				<div class="dhisContent dhisContentHeader">
-					<div class="programName">Name</div>
-					<div class="monthOption">Reporting Month and Year</div>
-					<!-- <div class="downloadButton"></div> -->
-					<div class="comment">
-						Comments (<span class="mandate-comment" />)
-					</div>
-					<div class="submit">Commit To DHIS</div>
-					<div class="status">Reporting Status</div>
-				</div>
-
-				<div id="programs"></div>
-			</div>
-			<!-- <div id="tab-yearly" class="tab-yearly">
+          <div id="programs"></div>
+        </div>
+        <!-- <div id="tab-yearly" class="tab-yearly">
 				<div class="section-title">
 					<span>List Of HMIS Programs</span>
 				</div>
@@ -84,20 +79,55 @@
 				</div>
 				<div id="programs-yearly"></div>
 			</div> -->
+      </div>
+    </div>
+
+		<div id="popup1" class="overlay">
+			<div class="popup">
+				<h2>Response</h2>
+				<a class="close" href="#">&times;</a>
+				<div class="content"></div>
+			</div>
 		</div>
 
-	</div>
-	<script id="failure-status-template" type="x-tmpl-mustache">
-    	<u class="status-failure">
-        	<b>{{status}}</b>
-   		</u>
-	</script>
-	<script id="success-status-template" type="x-tmpl-mustache">
-    	<b class="status-success">{{status}}</b>
-	</script>
-	<script src="js/spinner.js"></script>
-	<script src="js/init.js"></script>
-	<script
-		src="bower_components/nepali-date-picker/dist/jquery.nepaliDatePicker.min.js"></script>
-</body>
+    <script id="status-template" type="x-tmpl-mustache">
+      <a class="status-response" href="#popup1">
+      	{{status}}
+      </a>
+    </script>
+
+    <script id="response-template" type="x-tmpl-mustache">
+      <div class="api-response">
+      	<table>
+      		<tr>
+      			<th>Location Name</th>
+      			<th>Status</th>
+      			<th>Response</th>
+      		</tr>
+
+      		{{#results}}
+      		<tr>
+      			<td>{{locationName}}</td>
+      			<td>{{status}}</td>
+      			<td>
+      				{{#if response }}
+      					<span class="response-preview">{{truncate response 200}}</span>
+      					<button onclick="toggleDetails(this)">Show More</button>
+      					<div class="full-response" style="display: none;">
+      							<pre>{{response}}</pre>
+      					</div>
+      				{{else}}
+      					No DataValues are present
+      				{{/if}}
+      			</td>
+      		</tr>
+      		{{/results}}
+      	</table>
+      </div>
+    </script>
+
+    <script src="js/spinner.js"></script>
+    <script src="js/init.js"></script>
+    <script src="bower_components/nepali-date-picker/dist/jquery.nepaliDatePicker.min.js"></script>
+  </body>
 </html>
