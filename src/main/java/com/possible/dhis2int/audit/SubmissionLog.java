@@ -92,10 +92,5 @@ public class SubmissionLog {
 		public String toString() {
 			return event + ',' + time + ',' + userId + ',' + comment + ',' + status + ',' + dataFile;
 		}
-
-
-
-
 	}
-
 }
