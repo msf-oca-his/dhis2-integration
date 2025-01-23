@@ -5,7 +5,8 @@
 	{{#ifEquals ../reportType "weekly"}}
 		<div class="weekOption">
 			<div class="select-style">
-				<select class="week-selector" id="week-{{index}}">
+				<select class="week-selector" id="week-{{index}}"
+					onchange="getStatus('{{../reportType}}', {{index}})">
 					{{#../weeks}}
 						<option value="{{number}}">{{name}}</option>
 					{{/../weeks}}

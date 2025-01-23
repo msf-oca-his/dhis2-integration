@@ -13,14 +13,16 @@ public class Recordlog {
 	String comment;
 	Status status;
 	String log;
+	String location;
 
-	public Recordlog(String event, Date time, String userId, String log, Status status, String comment) {
+	public Recordlog(String event, Date time, String userId, String log, Status status, String comment, String location) {
 		this.event = event;
 		this.time = time;
 		this.userId = userId;
 		this.comment = comment;
 		this.status = status;
 		this.log = log;
+		this.location = location;
 	}
 
 	public String getEvent() {
@@ -59,6 +61,14 @@ public class Recordlog {
 		return status;
 	}
 
+	public String getLocation() {
+			return location;
+	}
+
+	public void setLocation(String location) {
+			this.location = location;
+	}
+
 	public void setStatus(Status status) {
 		this.status = status;
 	}
@@ -70,5 +80,4 @@ public class Recordlog {
 	public void setLog(String log) {
 		this.log = log;
 	}
-	
 }
