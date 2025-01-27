@@ -109,7 +109,10 @@ public class Submission {
 	}
 
 	private boolean isIgnored(JSONObject responseBody) throws JSONException {
-		return responseBody.getJSONObject("response").getJSONObject("importCount").getInt("ignored") > 0;
+		if (responseBody.has("response")) {
+			responseBody = responseBody.getJSONObject("response");
+		}
+		return responseBody.getJSONObject("importCount").getInt("ignored") > 0;
 	}
 
 	private boolean isServerError(JSONObject responseBody) throws JSONException {
