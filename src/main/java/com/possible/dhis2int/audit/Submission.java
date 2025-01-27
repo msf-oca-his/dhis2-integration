@@ -105,16 +105,13 @@ public class Submission {
 	}
 
 	private boolean hasConflicts(JSONObject responseBody) {
-		return responseBody.has("conflicts");
+		JSONObject jsonResponseObject = responseBody.has("response") ? responseBody.getJSONObject("response") : responseBody;
+		return jsonResponseObject.has("conflicts") && jsonResponseObject.getJSONArray("conflicts").length() > 0;
 	}
 
 	private boolean isIgnored(JSONObject responseBody) throws JSONException {
-		JSONObject jsonResponseObject = responseBody;
+		JSONObject jsonResponseObject = responseBody.has("response") ? responseBody.getJSONObject("response") : responseBody;
 
-		System.out.println("reposne" + jsonResponseObject);
-		if (responseBody.has("response")) {
-			jsonResponseObject = responseBody.getJSONObject("response");
-		}
 		return jsonResponseObject.getJSONObject("importCount").getInt("ignored") > 0;
 	}
 
