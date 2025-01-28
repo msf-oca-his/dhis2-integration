@@ -105,11 +105,14 @@ public class Submission {
 	}
 
 	private boolean hasConflicts(JSONObject responseBody) {
-		return responseBody.has("conflicts");
+		JSONObject jsonResponseObject = responseBody.has("response") ? responseBody.getJSONObject("response") : responseBody;
+		return jsonResponseObject.has("conflicts") && jsonResponseObject.getJSONArray("conflicts").length() > 0;
 	}
 
 	private boolean isIgnored(JSONObject responseBody) throws JSONException {
-		return responseBody.getJSONObject("response").getJSONObject("importCount").getInt("ignored") > 0;
+		JSONObject jsonResponseObject = responseBody.has("response") ? responseBody.getJSONObject("response") : responseBody;
+
+		return jsonResponseObject.getJSONObject("importCount").getInt("ignored") > 0;
 	}
 
 	private boolean isServerError(JSONObject responseBody) throws JSONException {
