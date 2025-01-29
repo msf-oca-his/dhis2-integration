@@ -42,7 +42,6 @@ $(document).ready(function () {
     .then(renderWeeklyReport)
     .then(renderPrograms)
     // .then(renderYearlyReport)
-    .then(registerOnchangeOnComment)
     .then(getLogStatus);
 
   Handlebars.registerHelper("ifEquals", function (arg1, arg2, options) {
@@ -371,22 +370,6 @@ function enableBtn(btn) {
 
 function disableBtn(btn) {
   return btn.attr("disabled", true).addClass("btn-disabled");
-}
-
-function disableAllSubmitBtns() {
-  disableBtn($("[id*='submit-']"));
-}
-
-function registerOnchangeOnComment() {
-  disableAllSubmitBtns();
-  $("[id*='comment-']").on("change keyup paste", function (event) {
-    var index = $(event.target).attr("index");
-    if ($(event.target).val().trim() != "") {
-      enableBtn(element("submit", index));
-    } else {
-      disableBtn(element("submit", index));
-    }
-  });
 }
 
 function getLogStatus() {
