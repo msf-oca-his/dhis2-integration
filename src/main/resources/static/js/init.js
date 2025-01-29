@@ -245,7 +245,7 @@ function submit(index, reportType, attribute) {
     month: month,
     week: week,
     name: programName,
-    comment: comment,
+    comment: comment
   };
 
   disableBtn(element("submit", index));
