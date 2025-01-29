@@ -161,23 +161,24 @@ function getDHISPrograms() {
   });
 }
 
-function putStatus(data, index) {
+function putStatus(reportType, data, index) {
   var statusTemplate = $("#status-template").html();
   var responseTemplate = $("#response-template").html();
 
-  element("status", index).html(
+  fetchElement("status", index, reportType).html(
     renderTemplate(statusTemplate, { status: data.status })
   );
-  element("status", index).find(".status-response").on("click", function () {
-
-    if (data.results) {
-      $(".popup .content").html(
-        renderTemplate(responseTemplate, { results: data.results })
-      );
-    } else {
-      $(".popup .content").html(data.exception);
-    }
-  });
+  fetchElement("status", index, reportType)
+    .find(".status-response")
+    .on("click", function () {
+      if (data.results) {
+        $(".popup .content").html(
+          renderTemplate(responseTemplate, { results: data.results })
+        );
+      } else {
+        $(".popup .content").html(data.exception);
+      }
+    });
 }
 
 function download(index) {
@@ -225,26 +226,26 @@ function downloadCommon(url) {
 
 function submit(index, reportType, attribute) {
   spinner.show();
-  var year = element("year", index).val();
-  var month = element("month", index).val();
-  var week = element("week", index).val();
-  var programName = element("program-name", index).html();
-  var comment = element("comment", index).val();
+  var year = fetchElement("year", index, reportType).val();
+  var month = fetchElement("month", index, reportType).val();
+  var week = fetchElement("week", index, reportType).val();
+  var programName = fetchElement("program-name", index, reportType).html();
+  var comment = fetchElement("comment", index, reportType).val();
 
   if (reportType == "weekly") {
     year = week.split("W")[0];
     week = week.split("W")[1];
     month = null;
   } else {
-    week = null
-  };
+    week = null;
+  }
 
   var parameters = {
     year: year,
     month: month,
     week: week,
     name: programName,
-    comment: comment
+    comment: comment,
   };
 
   disableBtn(element("submit", index));
@@ -255,9 +256,9 @@ function submit(index, reportType, attribute) {
   }
   $.get(submitTo, parameters)
     .done(function (data) {
-
       if (!$.isEmptyObject(data)) {
         putStatus(
+          reportType,
           {
             status: "Success",
             results: data,
@@ -269,6 +270,7 @@ function submit(index, reportType, attribute) {
     .fail(function (result) {
       if (result.status == 403) {
         putStatus(
+          reportType,
           {
             status: "Failure",
             exception: "Not Authenticated",
@@ -277,6 +279,7 @@ function submit(index, reportType, attribute) {
         );
       }
       putStatus(
+        reportType,
         {
           status: "Failure",
           exception: result,
@@ -285,7 +288,7 @@ function submit(index, reportType, attribute) {
       );
     })
     .always(function () {
-      enableBtn(element("submit", index));
+      enableBtn(fetchElement("submit", index, reportType));
       spinner.hide();
     });
 }
@@ -299,10 +302,10 @@ function confirmAndSubmit(index, reportType, attribute) {
 }
 
 function getStatus(reportType, index) {
-  var programName = element("program-name", index).html();
-  var year = element("year", index).val();
-  var month = element("month", index).val();
-  var week = element("week", index).val();
+  var programName = fetchElement("program-name", index, reportType).html();
+  var year = fetchElement("year", index, reportType).val();
+  var month = fetchElement("month", index, reportType).val();
+  var week = fetchElement("week", index, reportType).val();
 
   if (reportType == "weekly") {
     year = week.split("W")[0];
@@ -323,10 +326,11 @@ function getStatus(reportType, index) {
     .done(function (data) {
       data = JSON.parse(data);
       if ($.isEmptyObject(data)) {
-        element("comment", index).html("");
-        element("status", index).html("");
+        fetchElement("comment", index, reportType).html("");
+        fetchElement("status", index, reportType).html("");
       } else {
         putStatus(
+          reportType,
           {
             status: data.status,
             results: [data],
@@ -339,6 +343,7 @@ function getStatus(reportType, index) {
       console.log("failure response");
       if (response.status == 403) {
         putStatus(
+          reportType,
           {
             status: "Failure",
             exception: "Not Authenticated",
@@ -347,6 +352,7 @@ function getStatus(reportType, index) {
         );
       }
       putStatus(
+        reportType,
         {
           status: "Failure",
           exception: response,
@@ -362,6 +368,12 @@ function getStatus(reportType, index) {
 function element(name, index) {
   var id = name + "-" + index;
   return $('[id="' + id + '"]');
+}
+
+function fetchElement(elementName, index, reportType) {
+  let parentElement = reportType == "weekly" ? "programs-weekly" : "programs";
+
+  return $("#" + parentElement + " #" + elementName + "-" + index);
 }
 
 function enableBtn(btn) {

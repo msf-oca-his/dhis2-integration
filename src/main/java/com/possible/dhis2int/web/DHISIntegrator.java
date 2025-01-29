@@ -1,3 +1,4 @@
+
 package com.possible.dhis2int.web;
 
 import java.io.FileNotFoundException;
@@ -18,6 +19,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 import static org.apache.log4j.Logger.getLogger;
+import org.joda.time.LocalDate;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -212,7 +214,7 @@ public class DHISIntegrator {
 
 			String period;
 			if (month != null) {
-					period = format("%dM%d", year, month);
+					period = format("%d%02d", year, month);
 			} else {
 					period = format("%dW%d", year, week);
 			}
@@ -288,7 +290,7 @@ public class DHISIntegrator {
 
 		String period;
 		if (month != null) {
-			period = format("%dW%d", year, month);
+			period = format("%d%02d", year, month);
 		} else {
 			period = format("%dW%d", year, week);
 		}
@@ -486,7 +488,10 @@ public class DHISIntegrator {
 		ReportDateRange dateRange;
 		String period;
 		if (month != null) {
-			dateRange = new DateConverter().getDateRange(year, month);
+			LocalDate startDate = new LocalDate(year, month, 1);
+			LocalDate endDate = startDate.dayOfMonth().withMaximumValue();
+
+			dateRange = new ReportDateRange(startDate.toDateTimeAtStartOfDay(), endDate.toDateTimeAtStartOfDay());
 			period = format("%d%02d", year, month);
 		} else {
 			org.joda.time.LocalDate startDate = new org.joda.time.LocalDate()
