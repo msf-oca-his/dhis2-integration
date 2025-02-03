@@ -40,7 +40,7 @@ $(document).ready(function () {
     .then(isSubmitAuthorized)
     .then(initTabs)
     .then(renderWeeklyReport)
-    .then(renderPrograms)
+    // .then(renderPrograms)
     // .then(renderYearlyReport)
     .then(getLogStatus);
 
