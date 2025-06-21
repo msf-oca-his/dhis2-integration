@@ -32,7 +32,7 @@ const months = [
   "December",
 ].map((name, index) => ({ number: index + 1, name }));
 
-const weeks = weeksgenerator(10);
+const weeks = weeksgenerator(52);
 var hasReportingPrivilege = false;
 
 $(document).ready(function () {
